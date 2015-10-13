@@ -25,7 +25,7 @@ class User
   def self.find_by_name(first_name, last_name)
     results = QuestionsDatabase.instance.execute(<<-SQL, first_name, last_name)
     SELECT
-      id--, fname, lname
+      id, fname, lname
     FROM
       users
     WHERE
@@ -61,7 +61,7 @@ class Question
 
     results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
     SELECT
-      id
+      id, title, body, user_id
     FROM
       questions
     WHERE
@@ -77,6 +77,15 @@ class Question
     @id, @title, @body, @user_id =
     options.values_at('id', 'title', 'body', 'user_id')
   end
+
+  def author
+    User.find_by_id(user_id)
+  end
+
+  def replies
+    Reply.find_by_question_id(self.id)
+  end
+
 end
 
 class QuestionFollow
@@ -96,7 +105,7 @@ class Reply
 
     results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
     SELECT
-      id
+      id, question_id, reply_id, user_id, body
     FROM
       replies
     WHERE
@@ -111,7 +120,7 @@ class Reply
 
     results = QuestionsDatabase.instance.execute(<<-SQL, question_id)
     SELECT
-      id
+      id, question_id, reply_id, user_id, body
     FROM
       replies
     WHERE
@@ -127,6 +136,42 @@ class Reply
   def initialize( options = {} )
     @id, @question_id, @reply_id, @user_id, @body =
     options.values_at('id', 'question_id', 'reply_id', 'user_id', 'body')
+  end
+
+  def author
+    User.find_by_id(user_id)
+  end
+
+  def question
+    Question.find_by_question_id(question_id)
+  end
+
+  def parent_reply
+    results = QuestionsDatabase.instance.execute(<<-SQL, self.reply_id)
+    SELECT
+      id, question_id, reply_id, user_id, body
+    FROM
+      replies
+    WHERE
+      id = (?)
+    SQL
+
+    return nil if results.empty?
+    Reply.new(*results)
+  end
+
+  def child_replies
+    results = QuestionsDatabase.instance.execute(<<-SQL, self.id)
+    SELECT
+      id, question_id, reply_id, user_id, body
+    FROM
+      replies
+    WHERE
+      reply_id = (?)
+    SQL
+
+    return nil if results.empty?
+    Reply.new(*results)
   end
 
 end
