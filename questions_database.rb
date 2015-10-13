@@ -45,6 +45,10 @@ class User
     Reply.find_by_user_id(self.id)
   end
 
+  def followed_questions
+    QuestionFollow.followed_questions_for_user_id(self.id)
+  end
+
   attr_accessor :id, :fname, :lname
 
   def initialize( options = {} )
@@ -86,10 +90,51 @@ class Question
     Reply.find_by_question_id(self.id)
   end
 
+  def followers
+    QuestionFollow.followers_for_question_id(self.id)
+  end
+
 end
 
 class QuestionFollow
   attr_accessor :id, :user_id, :question_id
+
+  def self.followers_for_question_id(question_id)
+    results = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+    SELECT
+      users.id, users.fname, users.lname
+    FROM
+      questions_follow
+    JOIN
+      users
+    ON
+      users.id = questions_follow.user_id
+    WHERE
+      questions_follow.question_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| User.new(result) }
+
+  end
+
+  def self.followed_questions_for_user_id(user_id)
+    results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+    SELECT
+      questions.id, questions.title, questions.body, questions.user_id
+    FROM
+      questions_follow
+    JOIN
+      questions
+    ON
+      questions.id = questions_follow.question_id
+    WHERE
+      questions_follow.user_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Question.new(result) }
+  end
 
   def initialize( options = {} )
     @id, @user_id, @question_id =
@@ -171,7 +216,7 @@ class Reply
     SQL
 
     return nil if results.empty?
-    Reply.new(*results)
+    results.map { |result| Reply.new(result) }
   end
 
 end
