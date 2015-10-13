@@ -26,7 +26,7 @@ CREATE TABLE questions_follow (
 CREATE TABLE replies (
   id INTEGER PRIMARY KEY,
   question_id INTEGER NOT NULL,
-  reply_id INTEGER NOT NULL,
+  reply_id INTEGER,
   user_id INTEGER NOT NULL,
   body TEXT NOT NULL,
 
@@ -61,3 +61,16 @@ INSERT INTO
 VALUES
   ((SELECT id FROM users WHERE fname = 'Jimmy' AND lname = 'Zeng'), (SELECT id FROM questions WHERE title = 'How')),
   ((SELECT id FROM users WHERE fname = 'John' AND lname = 'Snyder'), (SELECT id FROM questions WHERE title = 'Why'));
+
+INSERT INTO
+  replies (question_id, reply_id, user_id, body)
+VALUES
+  (1, null, 1, 'Query!'),
+  (2, null, 2, 'I said so'),
+  (1, 1, 2, 'Why query?');
+
+  INSERT INTO
+    question_likes (user_id, question_id)
+  VALUES
+    (1, 1),
+    (2, 1);

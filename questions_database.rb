@@ -37,6 +37,13 @@ class User
     User.new(*results)
   end
 
+  def authored_questions
+    Question.find_by_user_id(self.id)
+  end
+
+  def authored_replies
+    Reply.find_by_user_id(self.id)
+  end
 
   attr_accessor :id, :fname, :lname
 
@@ -51,7 +58,19 @@ class Question
   attr_accessor :id, :title, :body, :user_id
 
   def self.find_by_user_id(user_id)
-    
+
+    results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+    SELECT
+      id
+    FROM
+      questions
+    WHERE
+      user_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Question.new(result) }
+
   end
 
   def initialize( options = {} )
@@ -71,11 +90,43 @@ class QuestionFollow
 end
 
 class Reply
-  attr_accessor :id, :user_id, :question_id
+  attr_accessor :id, :question_id, :reply_id, :user_id, :body
+
+  def self.find_by_user_id(user_id)
+
+    results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+    SELECT
+      id
+    FROM
+      replies
+    WHERE
+      user_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Reply.new(result) }
+  end
+
+  def self.find_by_question_id(question_id)
+
+    results = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+    SELECT
+      id
+    FROM
+      replies
+    WHERE
+      question_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Reply.new(result) }
+
+  end
+
 
   def initialize( options = {} )
-    @id, @user_id, @question_id =
-    options.values_at('id', 'user_id', 'question_id')
+    @id, @question_id, @reply_id, @user_id, @body =
+    options.values_at('id', 'question_id', 'reply_id', 'user_id', 'body')
   end
 
 end
