@@ -60,7 +60,8 @@ INSERT INTO
   questions_follow (user_id, question_id)
 VALUES
   ((SELECT id FROM users WHERE fname = 'Jimmy' AND lname = 'Zeng'), 1),
-  ((SELECT id FROM users WHERE fname = 'John' AND lname = 'Snyder'), 1);
+  ((SELECT id FROM users WHERE fname = 'John' AND lname = 'Snyder'), 1),
+  ((SELECT id FROM users WHERE fname = 'John' AND lname = 'Snyder'), 2);
 
 INSERT INTO
   replies (question_id, reply_id, user_id, body)

@@ -12,6 +12,12 @@ class QuestionsDatabase < SQLite3::Database
   end
 end
 
+
+
+#####################################################################
+
+
+
 class User
 
   def self.find_by_id(user_id)
@@ -58,6 +64,12 @@ class User
   end
 end
 
+
+
+#####################################################################
+
+
+
 class Question
   attr_accessor :id, :title, :body, :user_id
 
@@ -75,6 +87,10 @@ class Question
     return nil if results.empty?
     results.map { |result| Question.new(result) }
 
+  end
+
+  def self.most_followed(n)
+    QuestionFollow.most_followed_questions(n)
   end
 
   def initialize( options = {} )
@@ -95,6 +111,12 @@ class Question
   end
 
 end
+
+
+
+#####################################################################
+
+
 
 class QuestionFollow
   attr_accessor :id, :user_id, :question_id
@@ -136,12 +158,40 @@ class QuestionFollow
     results.map { |result| Question.new(result) }
   end
 
+  def self.most_followed_questions(n)
+    results = QuestionsDatabase.instance.execute(<<-SQL, n)
+    SELECT
+      questions.id, questions.title, COUNT(questions_follow.user_id) AS count
+    FROM
+      questions_follow
+    JOIN
+      questions
+    ON
+      questions.id = questions_follow.question_id
+    GROUP BY
+      questions.id
+    ORDER BY
+      count DESC
+    LIMIT
+      (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Question.new(result) }
+  end
+
   def initialize( options = {} )
     @id, @user_id, @question_id =
     options.values_at('id', 'user_id', 'question_id')
   end
 
 end
+
+
+
+#####################################################################
+
+
 
 class Reply
   attr_accessor :id, :question_id, :reply_id, :user_id, :body
@@ -221,8 +271,68 @@ class Reply
 
 end
 
+
+
+#####################################################################
+
+
+
 class QuestionLike
   attr_accessor :id, :user_id, :question_id
+
+  def self.likers_for_question_id(question_id)
+    results = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+    SELECT
+      users.id, users.fname, users.lname
+    FROM
+      users
+    JOIN
+      question_likes
+    ON
+      question_likes.user_id = users.id
+    WHERE
+      question_likes.question_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| User.new(result) }
+
+  end
+
+  def self.num_likes_for_question_id(question_id)
+    results = QuestionsDatabase.instance.execute(<<-SQL, question_id)
+    SELECT
+      COUNT(users.id)
+    FROM
+      users
+    JOIN
+      question_likes
+    ON
+      question_likes.user_id = users.id
+    WHERE
+      question_likes.question_id = (?)
+    SQL
+
+    results.first.values.last
+  end
+
+  def self.liked_questions_for_user_id(user_id)
+    results = QuestionsDatabase.instance.execute(<<-SQL, user_id)
+    SELECT
+      question_likes.question_id
+    FROM
+      users
+    JOIN
+      question_likes
+    ON
+      question_likes.user_id = users.id
+    WHERE
+      question_likes.user_id = (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Question.new(result) }
+  end
 
   def initialize( options = {} )
     @id, @user_id, @question_id =
