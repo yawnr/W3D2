@@ -43,6 +43,15 @@ class User
     User.new(*results)
   end
 
+
+  attr_accessor :id, :fname, :lname
+
+  def initialize( options = {} )
+    @id = options['id']
+    @fname = options['fname']
+    @lname = options['lname']
+  end
+
   def authored_questions
     Question.find_by_user_id(self.id)
   end
@@ -55,13 +64,11 @@ class User
     QuestionFollow.followed_questions_for_user_id(self.id)
   end
 
-  attr_accessor :id, :fname, :lname
-
-  def initialize( options = {} )
-    @id = options['id']
-    @fname = options['fname']
-    @lname = options['lname']
+  def liked_questions
+    QuestionLike.liked_questions_for_user_id(self.id)
   end
+
+
 end
 
 
@@ -110,6 +117,13 @@ class Question
     QuestionFollow.followers_for_question_id(self.id)
   end
 
+  def likers
+    QuestionLike.likers_for_question_id(self.id)
+  end
+
+  def num_likes
+    QuestionLike.num_likes_for_question_id(self.id)
+  end
 end
 
 
@@ -180,10 +194,16 @@ class QuestionFollow
     results.map { |result| Question.new(result) }
   end
 
+  def self.most_liked(n)
+    QuestionLike.most_liked_questions(n)
+
+  end
+
   def initialize( options = {} )
     @id, @user_id, @question_id =
     options.values_at('id', 'user_id', 'question_id')
   end
+
 
 end
 
@@ -269,6 +289,7 @@ class Reply
     results.map { |result| Reply.new(result) }
   end
 
+
 end
 
 
@@ -333,6 +354,30 @@ class QuestionLike
     return nil if results.empty?
     results.map { |result| Question.new(result) }
   end
+
+  def self.most_liked_questions(n)
+    results = QuestionsDatabase.instance.execute(<<-SQL, n)
+    SELECT
+      questions.id, questions.title, COUNT(questions_likes.user_id) AS count
+    FROM
+      questions_likes
+    JOIN
+      questions
+    ON
+      questions.id = questions_likes.question_id
+    GROUP BY
+      questions.id
+    ORDER BY
+      count DESC
+    LIMIT
+      (?)
+    SQL
+
+    return nil if results.empty?
+    results.map { |result| Question.new(result) }
+
+  end
+
 
   def initialize( options = {} )
     @id, @user_id, @question_id =
