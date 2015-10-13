@@ -20,32 +20,6 @@ end
 
 class User
 
-  def save
-    return self.update unless self.id.nil?
-
-    params = [self.fname, self.lname]
-    QuestionsDatabase.instance.execute(<<-SQL, *params)
-      INSERT INTO
-        users (fname, lname)
-      VALUES
-        (?, ?)
-    SQL
-    @id = QuestionsDatabase.instance.last_insert_row_id
-  end
-
-  def update
-    params = [self.fname, self.lname, self.id]
-    QuestionsDatabase.instance.execute(<<-SQL, *params)
-      UPDATE
-        users
-      SET
-        fname = ?, lname = ?
-      WHERE
-        users.id = (?)
-    SQL
-    # @id = QuestionsDatabase.instance.last_insert_row_id
-  end
-
   def self.find_by_id(user_id)
     # execute a SELECT; result in an `Array` of `Hash`es, each
     # represents a single row.
@@ -76,6 +50,32 @@ class User
     @id = options['id']
     @fname = options['fname']
     @lname = options['lname']
+  end
+
+  def save
+    return self.update unless self.id.nil?
+
+    params = [self.fname, self.lname]
+    QuestionsDatabase.instance.execute(<<-SQL, *params)
+      INSERT INTO
+        users (fname, lname)
+      VALUES
+        (?, ?)
+    SQL
+    @id = QuestionsDatabase.instance.last_insert_row_id
+  end
+
+  def update
+    params = [self.fname, self.lname, self.id]
+    QuestionsDatabase.instance.execute(<<-SQL, *params)
+      UPDATE
+        users
+      SET
+        fname = ?, lname = ?
+      WHERE
+        users.id = (?)
+    SQL
+
   end
 
   def authored_questions
@@ -150,6 +150,32 @@ class Question
   def initialize( options = {} )
     @id, @title, @body, @user_id =
     options.values_at('id', 'title', 'body', 'user_id')
+  end
+
+  def save
+    return self.update unless self.id.nil?
+
+    params = [self.title, self.body, self.user_id]
+    QuestionsDatabase.instance.execute(<<-SQL, *params)
+      INSERT INTO
+        questions (title, body, user_id)
+      VALUES
+        (?, ?, ?)
+    SQL
+    @id = QuestionsDatabase.instance.last_insert_row_id
+  end
+
+  def update
+    params = [self.title, self.body, self.user_id, self.id]
+    QuestionsDatabase.instance.execute(<<-SQL, *params)
+      UPDATE
+        questions
+      SET
+        title = ?, body = ?, user_id = ?
+      WHERE
+        questions.id = ?
+    SQL
+
   end
 
   def author
