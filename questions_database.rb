@@ -16,17 +16,72 @@ end
 
 #####################################################################
 
+class ModelBaseClass
 
-
-class User
-
-  def self.find_by_id(user_id)
-    # execute a SELECT; result in an `Array` of `Hash`es, each
-    # represents a single row.
-    results = QuestionsDatabase.instance.execute('SELECT * FROM users WHERE id = (?)', user_id)
-    return nil if results.empty?
-    User.new(results.first)
+  def initialize
   end
+
+  def self.all
+    results = QuestionsDatabase.instance.execute('SELECT * FROM ?', self::TABLE_NAME)
+    results.map { |result| self.new(result) }
+  end
+
+  def self.find_by_id(table_id)
+
+    results = QuestionsDatabase.instance.execute(<<-SQL, table_id)
+    SELECT *
+    FROM
+      #{self::TABLE_NAME}
+    WHERE
+      id = ?
+    SQL
+    return nil if results.empty?
+    self.new(results.first)
+  end
+
+  # error is 2 values for 3 columns
+  # def save
+  #   return self.update unless self.id.nil?
+  #
+  #   column_names ="(#{self.instance_variables.map { |ivar| ivar[1..-1].to_s }.join(",")})"
+  #   params = self.instance_variables.drop(1)
+  #   table_name = self.class::TABLE_NAME
+  #   QuestionsDatabase.instance.execute(<<-SQL, *params)
+  #     INSERT INTO
+  #       #{table_name} #{column_names} -- how do we get correct table name?
+  #     VALUES
+  #       (?, ?)
+  #   SQL
+  #   self.id = QuestionsDatabase.instance.last_insert_row_id
+  # end
+  # 
+  # def update
+  #   update_id = self.instance_variables[0]
+  #   params = self.instance_variables.drop(1)
+  #   QuestionsDatabase.instance.execute(<<-SQL, update_id, *params)
+  #     UPDATE
+  #       users -- how do we get correct table name?
+  #     SET
+  #       fname = ?, lname = ?
+  #     WHERE
+  #       users.id = ?
+  #   SQL
+  #
+  # end
+
+end
+
+class User < ModelBaseClass
+
+    TABLE_NAME = 'users'
+
+  # def self.find_by_id(user_id)
+  #   # execute a SELECT; result in an `Array` of `Hash`es, each
+  #   # represents a single row.
+  #   results = QuestionsDatabase.instance.execute('SELECT * FROM users WHERE id = (?)', user_id)
+  #   return nil if results.empty?
+  #   User.new(results.first)
+  # end
 
   def self.find_by_name(first_name, last_name)
     results = QuestionsDatabase.instance.execute(<<-SQL, first_name, last_name)
@@ -124,7 +179,9 @@ end
 
 
 
-class Question
+class Question < ModelBaseClass
+  TABLE_NAME = 'questions'
+
   attr_accessor :id, :title, :body, :user_id
 
   def self.find_by_user_id(user_id)
@@ -210,7 +267,7 @@ end
 
 
 
-class QuestionFollow
+class QuestionFollow < ModelBaseClass
   attr_accessor :id, :user_id, :question_id
 
   def self.followers_for_question_id(question_id)
@@ -286,7 +343,9 @@ end
 
 
 
-class Reply
+class Reply < ModelBaseClass
+  TABLE_NAME = 'replies'
+
   attr_accessor :id, :question_id, :reply_id, :user_id, :body
 
   def self.find_by_user_id(user_id)
@@ -371,7 +430,7 @@ end
 
 
 
-class QuestionLike
+class QuestionLike < ModelBaseClass
   attr_accessor :id, :user_id, :question_id
 
   def self.likers_for_question_id(question_id)
